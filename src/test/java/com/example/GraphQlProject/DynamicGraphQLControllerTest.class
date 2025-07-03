@@ -1,0 +1,50 @@
+// Source code is decompiled from a .class file using FernFlower decompiler.
+package com.example.GraphQlProject;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+public class DynamicGraphQLControllerTest {
+   @Autowired
+   private MockMvc mockMvc;
+
+   public DynamicGraphQLControllerTest() {
+   }
+
+   @BeforeEach
+   void setupSchema() throws Exception {
+      String sdl = "    type User { id: ID!, name: String! }\n    type Query { users: [User] user(id: ID!): User }\n    type Mutation { createUser(id: ID!, name: String!): User deleteUser(id: ID!): User }\n";
+      MockMultipartFile file = new MockMultipartFile("file", "schema.graphqls", "text/plain", sdl.getBytes());
+      this.mockMvc.perform(MockMvcRequestBuilders.multipart("/api/upload-schema", new Object[0]).file(file)).andExpect(MockMvcResultMatchers.status().isOk());
+   }
+
+   @Test
+   void createUser_and_queryUser() throws Exception {
+      String createMutation = "mutation { createUser(id: \"1\", name: \"Alice\") { id name } }";
+      String createBody = String.format("{\"query\": \"%s\"}", createMutation.replace("\"", "\\\""));
+      this.mockMvc.perform(MockMvcRequestBuilders.post("/graphql", new Object[0]).contentType(MediaType.APPLICATION_JSON).content(createBody)).andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.data.createUser.id", new Object[0]).value("1")).andExpect(MockMvcResultMatchers.jsonPath("$.data.createUser.name", new Object[0]).value("Alice"));
+      String query = "{ user(id: \"1\") { id name } }";
+      String queryBody = String.format("{\"query\": \"%s\"}", query.replace("\"", "\\\""));
+      this.mockMvc.perform(MockMvcRequestBuilders.post("/graphql", new Object[0]).contentType(MediaType.APPLICATION_JSON).content(queryBody)).andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.data.user.id", new Object[0]).value("1")).andExpect(MockMvcResultMatchers.jsonPath("$.data.user.name", new Object[0]).value("Alice"));
+   }
+
+   @Test
+   void deleteUser() throws Exception {
+      String createMutation = "mutation { createUser(id: \"2\", name: \"Bob\") { id name } }";
+      String createBody = String.format("{\"query\": \"%s\"}", createMutation.replace("\"", "\\\""));
+      this.mockMvc.perform(MockMvcRequestBuilders.post("/graphql", new Object[0]).contentType(MediaType.APPLICATION_JSON).content(createBody)).andExpect(MockMvcResultMatchers.status().isOk());
+      String deleteMutation = "mutation { deleteUser(id: \"2\") { id name } }";
+      String deleteBody = String.format("{\"query\": \"%s\"}", deleteMutation.replace("\"", "\\\""));
+      this.mockMvc.perform(MockMvcRequestBuilders.post("/graphql", new Object[0]).contentType(MediaType.APPLICATION_JSON).content(deleteBody)).andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.jsonPath("$.data.deleteUser.id", new Object[0]).value("2"));
+   }
+}

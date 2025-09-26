@@ -45,5 +45,3 @@ All PRs are automatically reviewed by [CodeRabbit](https://coderabbit.ai) for co
 This project is licensed under the [MIT License](LICENSE).
 
 ---
-
-> Made with ❤️ using Spring Boot, GraphQL, and SQLite. 
